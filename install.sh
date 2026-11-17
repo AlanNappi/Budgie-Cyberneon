@@ -24,6 +24,7 @@ done
 
 # ------------------------------------------------------------------ config
 LOGO=""; LABEL="N E T R U N N E R"; HUD_LABEL=""; WALLPAPER="cyberneon.png"; NEMO_OPACITY="0.90"
+LIVE_WALLPAPER="yes"; LIVE_FPS="15"
 PINNED="budgie-control-center.desktop,nemo.desktop,firefox_firefox.desktop,com.gexperts.Tilix.desktop,libreoffice-calc.desktop"
 UI_FONT="Chakra Petch Medium 10"; DOC_FONT="Chakra Petch 10"; TITLE_FONT="Chakra Petch Bold 10"
 # shellcheck source=cyberneon.conf
@@ -72,6 +73,8 @@ dconf dump / > "$BK/dconf-full.ini"
 [ -f "$HOME/.bashrc" ] && cp "$HOME/.bashrc" "$BK/bashrc"
 [ -f "$HOME/.config/gtk-4.0/gtk.css" ] && cp "$HOME/.config/gtk-4.0/gtk.css" "$BK/gtk4-gtk.css"
 [ -f "$HOME/.config/autostart/plank.desktop" ] && cp "$HOME/.config/autostart/plank.desktop" "$BK/plank.desktop"
+[ -f "$HOME/.xsessionrc" ] && cp "$HOME/.xsessionrc" "$BK/xsessionrc"
+[ -f "$HOME/.config/Kvantum/kvantum.kvconfig" ] && cp "$HOME/.config/Kvantum/kvantum.kvconfig" "$BK/kvantum.kvconfig"
 if [ ! -d "$DATA/backups/pristine" ]; then   # first install: this is the state uninstall.sh goes back to
     cp -r "$BK" "$DATA/backups/pristine"
 fi
@@ -117,7 +120,7 @@ WALLDIR="$HOME/Pictures/Wallpapers"; mkdir -p "$WALLDIR"
 WARGS=(--label "$LABEL" --monitor-width "$MON_W"); [ -n "$LOGO" ] && WARGS+=(--logo "$LOGO")
 python3 -I "$SC/make_wallpaper.py" "$WALLDIR/$WALLPAPER" "${WARGS[@]}"
 
-say "login / GRUB assets -> $DATA/system (install them with system/*.sh)"
+say "login / GRUB / boot splash assets -> $DATA/system (install them with system/*.sh)"
 mkdir -p "$DATA/system"
 python3 -I "$SC/make_wallpaper.py" "$DATA/system/login-4k.png" --login "${WARGS[@]}"
 python3 -I "$SC/make_system_assets.py" "$DATA/system/login-4k.png" "$DATA/system"
@@ -130,6 +133,8 @@ if have grub-mkfont; then
     grub-mkfont -s 22 -o "$DATA/system/grub/chakra_bold_22.pf2" "$F/ChakraPetch-Bold.ttf"
     grub-mkfont -s 28 -o "$DATA/system/grub/chakra_bold_28.pf2" "$F/ChakraPetch-Bold.ttf"
 fi
+rm -rf "$DATA/system/plymouth"
+python3 -I "$SC/make_plymouth.py" "$DATA/system/plymouth" ${LOGO:+"$LOGO"} >/dev/null
 
 # ------------------------------------------------------------------ desktop settings
 say "appearance settings"
@@ -237,6 +242,34 @@ X-GNOME-Autostart-enabled=true
 OnlyShowIn=Budgie;
 EOF
 
+CN_LIVE="$HOME/.config/cyberneon/live-wallpaper.py"
+if [ "$LIVE_WALLPAPER" = yes ]; then
+    say "CyberNeon Live: animated wallpaper layer (${LIVE_FPS} fps)"
+    cp "$REPO/config/live-wallpaper.py" "$CN_LIVE"; chmod +x "$CN_LIVE"
+    cat > "$AUTO/cyberneon-live-wallpaper.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=CyberNeon Live wallpaper
+Comment=Animated layer over the CyberNeon wallpaper (scan line, arcs, network, glitches)
+Exec=sh -c "sleep 3 && python3 -I $CN_LIVE --fps $LIVE_FPS"
+Terminal=false
+X-GNOME-Autostart-enabled=true
+OnlyShowIn=Budgie;
+EOF
+else
+    rm -f "$AUTO/cyberneon-live-wallpaper.desktop" "$CN_LIVE"
+fi
+
+# Kvantum: cut-corner HUD widgets for Qt apps (optional, only if Kvantum is installed)
+if have kvantummanager || ls /usr/lib/*/qt5/plugins/styles/libkvantum.so /usr/lib/*/qt6/plugins/styles/libkvantum.so >/dev/null 2>&1; then
+    say "Kvantum widget style for Qt apps"
+    python3 -I "$SC/make_kvantum.py" "$HOME/.config/Kvantum/CyberNeon" >/dev/null
+    printf '[General]\ntheme=CyberNeon\n' > "$HOME/.config/Kvantum/kvantum.kvconfig"
+    if ! grep -q '# >>> cyberneon qt >>>' "$HOME/.xsessionrc" 2>/dev/null; then
+        printf '\n# >>> cyberneon qt >>>\nexport QT_STYLE_OVERRIDE=kvantum\n# <<< cyberneon qt <<<\n' >> "$HOME/.xsessionrc"
+    fi
+fi
+
 # ------------------------------------------------------------------ restart
 if [ "$RESTART" = 1 ]; then
     say "restarting window manager, panel, HUD"
@@ -249,7 +282,9 @@ if [ "$RESTART" = 1 ]; then
     for p in $(pgrep -f '[c]yberneon/nemo-opacity.sh'); do kill "$p" 2>/dev/null || true; done
     pkill -f 'xprop -root -spy _NET_CLIENT_LIST' 2>/dev/null || true
     setsid -f "$HOME/.config/cyberneon/nemo-opacity.sh" "$NEMO_OPACITY" >/dev/null 2>&1 < /dev/null
+    for p in $(pgrep -f '[l]ive-wallpaper.py'); do kill "$p" 2>/dev/null || true; done
+    [ "$LIVE_WALLPAPER" = yes ] && setsid -f python3 -I "$CN_LIVE" --fps "$LIVE_FPS" >/dev/null 2>&1 < /dev/null
 fi
 
-say "done. Login screen and GRUB: sudo bash $REPO/system/install-login.sh / install-grub.sh"
+say "done. Login screen, GRUB, boot splash: sudo bash $REPO/system/install-login.sh / install-grub.sh / install-plymouth.sh"
 say "undo: $REPO/uninstall.sh   (backup of this run: $BK)"

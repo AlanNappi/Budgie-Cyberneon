@@ -291,3 +291,112 @@ scrollbar slider:active { background-color: @cy; }
 /* dock: keep the applets clear of the red bar */
 .left .budgie-panel > box  { margin-right: 14px; }
 .right .budgie-panel > box { margin-left: 14px; }
+
+/* =====================================================================
+ * HUD v2: real cut-corner widgets (9-slice border-image SVGs from scripts/make_gtk_assets.py)
+ * GTK3 does not paint the centre slice, so the inside is the background colour clipped to the padding box.
+ * ===================================================================== */
+window button:not(.flat):not(.titlebutton),
+window button:not(.flat):not(.titlebutton):backdrop {
+  border-style: solid;
+  border-width: 6px;
+  border-radius: 0;
+  border-image: url("assets/cn-btn-normal.svg") 6 6 6 6 stretch;
+  background-image: none;
+  background-color: alpha(@cy, 0.04);
+  background-clip: padding-box;
+  box-shadow: none;
+  padding: 0 6px;
+  min-height: 18px;
+  min-width: 14px;
+  color: @cy;
+}
+window button:not(.flat):not(.titlebutton):hover {
+  border-image: url("assets/cn-btn-hover.svg") 6 6 6 6 stretch;
+  background-color: alpha(@cy, 0.12);
+}
+window button:not(.flat):not(.titlebutton):active,
+window button:not(.flat):not(.titlebutton):checked {
+  border-image: url("assets/cn-btn-active.svg") 6 6 6 6 stretch;
+  background-color: alpha(@cy, 0.24);
+}
+window button:not(.flat):not(.titlebutton):disabled {
+  border-image: url("assets/cn-btn-disabled.svg") 6 6 6 6 stretch;
+  background-color: transparent;
+  color: alpha(@cy, 0.35);
+}
+window button.suggested-action:not(.flat), window button.suggested-action:not(.flat):backdrop {
+  border-image: url("assets/cn-btn-suggested.svg") 6 6 6 6 stretch;
+  background-color: @cy;
+  color: @navy;
+}
+window button.suggested-action:not(.flat):hover {
+  border-image: url("assets/cn-btn-suggested-hover.svg") 6 6 6 6 stretch;
+  background-color: #8af7ea;
+}
+window button.destructive-action:not(.flat), window button.destructive-action:not(.flat):backdrop {
+  border-image: url("assets/cn-btn-destructive.svg") 6 6 6 6 stretch;
+  background-color: @red;
+  color: @navy;
+}
+window button.destructive-action:not(.flat):hover {
+  border-image: url("assets/cn-btn-destructive-hover.svg") 6 6 6 6 stretch;
+  background-color: #ff5a6d;
+}
+/* combo boxes: the base theme already pads them */
+window combobox button:not(.flat):not(.titlebutton), window combobox button:not(.flat):not(.titlebutton):backdrop {
+  min-height: 18px;
+  padding: 0 4px;
+}
+/* keep small/special buttons as before */
+spinbutton button, window spinbutton button:not(.flat):not(.titlebutton),
+.budgie-panel button, .budgie-popover button, .raven button,
+notebook > header button, scrollbar button {
+  border-image: none;
+  border-width: 0;
+}
+
+window entry, window entry:backdrop {
+  border-style: solid;
+  border-width: 6px;
+  border-radius: 0;
+  border-image: url("assets/cn-entry-normal.svg") 6 6 6 6 stretch;
+  background-image: none;
+  background-color: @view_bg;
+  background-clip: padding-box;
+  box-shadow: none;
+  padding: 0 4px;
+  min-height: 18px;
+}
+window entry:focus { border-image: url("assets/cn-entry-focus.svg") 6 6 6 6 stretch; box-shadow: none; }
+window entry:disabled { border-image: url("assets/cn-entry-disabled.svg") 6 6 6 6 stretch; }
+.budgie-popover entry, .raven entry, spinbutton entry { border-image: none; border-width: 0; }
+
+tooltip.background {
+  border-style: solid;
+  border-width: 6px;
+  border-image: url("assets/cn-tooltip.svg") 6 6 6 6 stretch;
+  background-color: rgba(11, 22, 32, 0.97);
+  background-clip: padding-box;
+}
+
+/* titlebar HUD ticks (three navy squares after the 45deg cut) + spaced title */
+.ssd headerbar.titlebar, .ssd headerbar.titlebar:backdrop {
+  background-image: linear-gradient(@navy, @navy), linear-gradient(@navy, @navy), linear-gradient(@navy, @navy);
+  background-size: 4px 4px, 4px 4px, 4px 4px;
+  background-position: 26px 50%, 33px 50%, 40px 50%;
+  background-repeat: no-repeat;
+}
+.ssd headerbar.titlebar.maximized, .ssd headerbar.titlebar.tiled {
+  background-position: 8px 50%, 15px 50%, 22px 50%;
+}
+.ssd headerbar.titlebar .title { letter-spacing: 1px; }
+
+/* hatched HUD progress bars (like the boot splash) */
+progressbar trough, progressbar progress { border-radius: 0; }
+progressbar.horizontal trough, progressbar.horizontal progress { min-height: 6px; }
+progressbar progress {
+  border: none;
+  background-color: alpha(@cy, 0.35);
+  background-image: repeating-linear-gradient(-55deg, @cy 0px, @cy 4px, transparent 4px, transparent 8px);
+}

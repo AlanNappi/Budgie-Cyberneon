@@ -13,7 +13,12 @@ CyberNeon è un **fan tribute** che trasforma un desktop **Ubuntu Budgie 24.04 (
 netrunner **ispirata all'estetica di *Cyberpunk 2077* di CD PROJEKT RED** (tutto il merito dello stile va a loro): blu notte, cornici rosso neon,
 testi e icone ciano, angoli tagliati a 45°, HUD di sistema e sfondo "hacking".
 
-Tutto si installa a livello utente con un solo comando; login e GRUB hanno script separati con `sudo`.
+Lo sfondo è **animato** (linea di scansione, archi che ruotano, rete che lampeggia, pacchetti di dati, glitch), i widget
+GTK hanno **angoli tagliati veri** e c'è una **splash di avvio "jack-in"** tra GRUB e il login.
+
+![Sfondo animato CyberNeon Live](docs/live-wallpaper.gif)
+
+Tutto si installa a livello utente con un solo comando; login, GRUB e splash di avvio hanno script separati con `sudo`.
 Ogni installazione salva un backup e `uninstall.sh` riporta il sistema allo stato precedente.
 
 ---
@@ -41,23 +46,27 @@ Ogni installazione salva un backup e `uninstall.sh` riporta il sistema allo stat
 
 | Componente | Descrizione |
 |---|---|
-| **Tema GTK `CyberNeon`** | Pocillo-dark ricolorato (GTK 2/3/4) + override: pulsanti e campi con contorno ciano, selezioni ciano, tooltip HUD, link ciano/rosa. Palette anche per le app libadwaita (`~/.config/gtk-4.0/gtk.css`). |
-| **Cornici delle finestre** | Titlebar rosso neon con taglio a 45° in alto a sinistra, bordo rosso laterale e inferiore, pulsanti a quadratino centrati. Finestre inattive in rosso scuro. Le finestre con headerbar (CSD) hanno un anello rosso con alone neon. |
+| **Tema GTK `CyberNeon`** | Pocillo-dark ricolorato (GTK 2/3/4) + override: **pulsanti con angoli tagliati a 45°** (alto a sinistra e basso a destra) e contorno ciano, pieni ciano per l'azione principale e rossi per quella distruttiva; **campi** con l'angolo in basso a destra tagliato; **tooltip** HUD con angoli tagliati; **barre di avanzamento a strisce**; selezioni ciano, link ciano/rosa. Palette anche per le app libadwaita (`~/.config/gtk-4.0/gtk.css`). |
+| **Cornici delle finestre** | Titlebar rosso neon con taglio a 45° in alto a sinistra, **tre quadratini HUD** dopo il taglio, titolo spaziato, bordo rosso laterale e inferiore, pulsanti a quadratino centrati. Finestre inattive in rosso scuro. Le finestre con headerbar (CSD) hanno un anello rosso con alone neon. |
 | **Pannelli Budgie** | Barra in alto 34 px con riga rossa al neon e data `AAAA-MM-GG  HH:MM`; dock verticale a sinistra (90 px) con barra rossa e icone cerchiate; raccordo rosso a 45° tra barra e dock. Plank viene disattivato. |
 | **Icone `CyberNeon-Icons`** | Icone cerchiate ciano originali per impostazioni, file, browser, terminale, foglio di calcolo, posta, calcolatrice, editor; logo del menu; stemma al posto dell'uccellino di Budgie. Eredita da **Papirus-Dark** con un colore cartelle "cyber" (ciano, petrolio, foglio rosso). |
 | **Cursori `CyberNeon-Cursors`** | Cursori HUD originali con bagliore: freccia a lama, link a mirino, I-beam con parentesi, attesa con anelli contro-rotanti (animata), resize e spostamento. |
 | **Sfondo** | Generato proceduralmente (originale): dump esadecimale, piste di circuito, flussi di dati, sigillo radiale al centro, finestra terminale con log di intrusione, grafo di rete, glitch e bloom neon. |
+| **Sfondo animato `CyberNeon Live`** | Livello animato sopra lo sfondo, allineato ai suoi disegni: **linea di scansione**, **archi che ruotano** attorno al sigillo, **nodi della rete che lampeggiano** e bersaglio che pulsa, **pacchetti di dati** lungo il percorso evidenziato, **colonne esadecimali** che scendono e **glitch** periodici (strisce dello sfondo spostate per un istante). È una finestra trasparente "desktop" che lascia passare i clic. 15 fps, circa il 5 % di un core; disattivabile (`LIVE_WALLPAPER="no"`). |
 | **HUD conky** | In basso a destra: CPU, RAM e disco in tempo reale, blocco a strisce diagonali e targhetta verticale con il tuo nome. |
 | **Orologio ShowTime** | Ora in ciano (Orbitron) e data in rosso, in alto a destra. |
 | **Terminale** | Palette Tilix CyberNeon + prompt bash a due righe con segmenti rosso/ciano e branch git (richiede un Nerd Font, es. JetBrainsMono Nerd Font). |
 | **Nemo** | Leggera trasparenza delle finestre del file manager (90 %). |
 | **Font** | Chakra Petch, Rajdhani, Orbitron (SIL OFL, inclusi in `assets/fonts`). |
 | **Login e GRUB** | Sfondo e tema per slick-greeter (LightDM) e tema per il menu GRUB, con script `sudo` separati. |
+| **Splash di avvio (Plymouth)** | Sequenza "**// JACKING IN**" tra GRUB e il login: logo che si accende con un flicker, barra di avanzamento a strisce, righe di stato che compaiono man mano, staffe rosse agli angoli; anche la richiesta della password dei dischi cifrati è in stile HUD. Script `sudo` separato. |
+| **App Qt (Kvantum, opzionale)** | Se installi Kvantum, le app Qt prendono lo stesso stile HUD dell'edizione KDE (pulsanti ad angoli tagliati, menu rossi, barre a strisce). |
 
 ## Screenshot
 
 | | |
 |---|---|
+| ![Widget](docs/widgets.png) **Widget GTK con angoli tagliati** (screenshot reale) | ![Splash di avvio](docs/plymouth.png) **Splash di avvio Plymouth** (screenshot del vero Plymouth, vedi [anteprima](#splash-di-avvio-plymouth)) |
 | ![Sfondo](docs/wallpaper.jpg) **Sfondo** (stemma originale) | ![Prompt](docs/prompt.png) **Prompt bash + Tilix** (illustrazione) |
 | ![Login](docs/login.png) **Login** (illustrazione su sfondo reale) | ![GRUB](docs/grub.png) **GRUB** (illustrazione con gli asset reali del tema) |
 
@@ -110,7 +119,8 @@ L'installazione è **idempotente**: puoi rilanciarla quando vuoi (per esempio do
 Al termine:
 - **cursore**: è già attivo; le app aperte da prima lo prendono al prossimo login;
 - **prompt**: compare nei terminali aperti da quel momento;
-- **login e GRUB**: vanno installati con gli script di [sistema](#schermata-di-login-e-grub).
+- **sfondo animato**: parte subito e a ogni login (`~/.config/autostart/cyberneon-live-wallpaper.desktop`);
+- **login, GRUB e splash di avvio**: vanno installati con gli script di [sistema](#schermata-di-login-e-grub).
 
 ## Configurazione (`cyberneon.conf`)
 
@@ -123,6 +133,8 @@ Al termine:
 | `HUD_LABEL` | *(vuoto)* | testo della targhetta verticale dell'HUD; vuoto = nome utente in maiuscolo |
 | `WALLPAPER` | `cyberneon-arasaka-red.png` | nome del file creato in `~/Pictures/Wallpapers` |
 | `NEMO_OPACITY` | `0.90` | opacità delle finestre di Nemo (`1.0` = opaco) |
+| `LIVE_WALLPAPER` | `yes` | sfondo animato `CyberNeon Live` (`no` = sfondo statico) |
+| `LIVE_FPS` | `15` | fotogrammi al secondo dello sfondo animato (meno = più leggero) |
 | `PINNED` | impostazioni, Nemo, Firefox, Tilix, LibreOffice Calc | lanciatori del dock (nomi dei file `.desktop`; quelli mancanti vengono saltati) |
 | `UI_FONT` / `DOC_FONT` | `Chakra Petch Medium 10` / `Chakra Petch 10` | font dell'interfaccia |
 | `TITLE_FONT` | `Chakra Petch Bold 10` | font dei titoli delle finestre; determina anche l'altezza della titlebar (vedi [note tecniche](#note-tecniche-e-problemi-noti)) |
@@ -150,20 +162,21 @@ Con `LOGO=""` vengono usati lo stemma originale di CyberNeon (esagono con visier
 1. **Controlli**: sessione X11/Budgie, comandi e moduli Python necessari, presenza di Pocillo-dark.
    Rileva il monitor principale (dimensioni e posizione) con `xrandr`.
 2. **Backup** in `~/.local/share/cyberneon/backups/<data-ora>/`: dump completo di dconf, `~/.bashrc`,
-   `~/.config/gtk-4.0/gtk.css`, autostart di Plank. Alla **prima** installazione il backup viene copiato
+   `~/.config/gtk-4.0/gtk.css`, autostart di Plank, `~/.xsessionrc` e `~/.config/Kvantum/kvantum.kvconfig`. Alla **prima** installazione il backup viene copiato
    anche in `backups/pristine/`: è lo stato a cui torna `uninstall.sh`.
 3. **Font** → `~/.local/share/fonts/cyberneon/`.
 4. **Papirus** (release fissata `20260801`, `PAPIRUS_TAG=latest` per la più recente) →
    `~/.local/share/icons/Papirus{,-Dark}`, con il colore cartelle "cyber" come predefinito.
-5. **Tema GTK** → `~/.themes/CyberNeon` (`scripts/build_theme.py`: ricolora Pocillo-dark e aggiunge `theme/*-overrides.css`);
+5. **Tema GTK** → `~/.themes/CyberNeon` (`scripts/build_theme.py`: ricolora Pocillo-dark, aggiunge `theme/*-overrides.css`
+   e le immagini SVG delle cornici ad angoli tagliati di `make_gtk_assets.py`);
    palette libadwaita → `~/.config/gtk-4.0/gtk.css`.
 6. **Icone** → `~/.local/share/icons/CyberNeon-Icons` (`make_icons.py`, più `make_logo_icon.py` se c'è un logo).
 7. **Cursori** → `~/.local/share/icons/CyberNeon-Cursors` (`make_cursors.py`), con link in `~/.icons/` e
    `~/.icons/default/index.theme` (vedi [note tecniche](#note-tecniche-e-problemi-noti)).
 8. **Firefox snap**: copia locale del lanciatore con `Icon=firefox`, così usa l'icona del tema.
 9. **Sfondo** → `~/Pictures/Wallpapers/$WALLPAPER` (`make_wallpaper.py`, 3840×2160).
-10. **Asset di login e GRUB** → `~/.local/share/cyberneon/system/` (sfondo di login, sfondo e pixmap GRUB,
-    font `.pf2` con `grub-mkfont`).
+10. **Asset di login, GRUB e splash** → `~/.local/share/cyberneon/system/` (sfondo di login, sfondo e pixmap GRUB,
+    font `.pf2` con `grub-mkfont`, tema Plymouth di `make_plymouth.py` con il logo).
 11. **Impostazioni** (gsettings): tema GTK e WM, icone, cursore, font, sfondo (`zoom`), schema scuro.
 12. **Pannelli** (`panels.py`): barra in alto (34 px, spaziatore iniziale di 116 px, orologio a destra con formato
     personalizzato) e dock a sinistra (menu, lista icone, workspace). Plank viene fermato e tolto dall'avvio automatico.
@@ -172,15 +185,21 @@ Con `LOGO=""` vengono usati lo stemma originale di CyberNeon (esagono con visier
 15. **Prompt**: `~/.config/cyberneon/prompt.bash`, richiamato da un blocco delimitato in `~/.bashrc`.
 16. **HUD conky**: `~/.config/conky/cyberneon/` + avvio automatico `cyberneon-hud.desktop`.
 17. **Trasparenza di Nemo**: `~/.config/cyberneon/nemo-opacity.sh` + avvio automatico `cyberneon-nemo-opacity.desktop`.
-18. **Riavvio** di budgie-wm (con correzione automatica di `_NET_SUPPORTING_WM_CHECK`), budgie-panel, conky e dello script di Nemo.
+18. **Sfondo animato**: `~/.config/cyberneon/live-wallpaper.py` + avvio automatico `cyberneon-live-wallpaper.desktop`
+    (con `LIVE_WALLPAPER="no"` li rimuove).
+19. **Kvantum** (solo se installato): tema `~/.config/Kvantum/CyberNeon` (`make_kvantum.py`, lo stesso dell'edizione KDE),
+    `kvantum.kvconfig` e un blocco delimitato in `~/.xsessionrc` con `QT_STYLE_OVERRIDE=kvantum` (vale dal login successivo).
+20. **Riavvio** di budgie-wm (con correzione automatica di `_NET_SUPPORTING_WM_CHECK`), budgie-panel, conky, dello script di Nemo
+    e dello sfondo animato.
 
 ## Schermata di login e GRUB
 
 Lancia prima `./install.sh` come utente normale (prepara gli asset), poi:
 
 ```bash
-sudo bash system/install-login.sh   # slick-greeter (LightDM)
-sudo bash system/install-grub.sh    # menu di avvio GRUB
+sudo bash system/install-login.sh      # slick-greeter (LightDM)
+sudo bash system/install-grub.sh       # menu di avvio GRUB
+sudo bash system/install-plymouth.sh   # splash di avvio "jack-in" (Plymouth)
 ```
 
 **`install-login.sh`**
@@ -200,6 +219,19 @@ sudo bash system/install-grub.sh    # menu di avvio GRUB
 - esegue `update-grub`;
 - per annullare: `sudo cp /etc/default/grub.bak-cyberneon /etc/default/grub && sudo update-grub`.
 
+### Splash di avvio (Plymouth)
+
+**`install-plymouth.sh`**
+- copia il tema in `/usr/share/plymouth/themes/cyberneon/` (modulo `script` di Plymouth: logo, scritta, barra, righe di stato);
+- lo registra come `default.plymouth` con `update-alternatives` e rigenera l'initramfs (`update-initramfs -u`), perché
+  la splash viene caricata da lì all'avvio;
+- serve `splash` in `GRUB_CMDLINE_LINUX_DEFAULT` (su Ubuntu c'è già: `quiet splash`);
+- per annullare: `sudo bash system/install-plymouth.sh --undo` (torna alla splash di Ubuntu Budgie).
+
+**Anteprima senza installare né riavviare**: `bash lab/plymouth-preview.sh` avvia il vero Plymouth di Ubuntu 24.04 in un
+container Docker usa e getta, su uno schermo virtuale, e salva gli screenshot (avvio, avanzamento, richiesta della password)
+in `lab/out/`. Il sistema non viene toccato. Lo screenshot del README è stato fatto così.
+
 ## Disinstallazione
 
 ```bash
@@ -210,7 +242,8 @@ sudo bash system/install-grub.sh    # menu di avvio GRUB
 Ripristina il dump dconf di `backups/pristine` (tema, icone, cursore, font, sfondo, pannelli, Tilix, ShowTime) e
 rimuove tema, icone, cursori, configurazioni, avvii automatici, blocco del prompt in `~/.bashrc` e lanciatore di
 Firefox. Infine riattiva Plank e riavvia window manager e pannello. Sfondi e backup restano.
-Login e GRUB si annullano con le righe indicate sopra.
+Ferma anche lo sfondo animato e toglie il tema Kvantum e il blocco in `~/.xsessionrc`.
+Login, GRUB e splash di avvio si annullano con le righe indicate sopra.
 
 ## Struttura del repository
 
@@ -233,20 +266,26 @@ cyberneon-budgie/
 │   ├── panels.py              configurazione idempotente dei pannelli Budgie
 │   ├── install_fonts.sh       font da assets/fonts
 │   ├── install_papirus.sh     Papirus + colore cartelle "cyber"
+│   ├── make_gtk_assets.py     cornici SVG ad angoli tagliati dei widget GTK (border-image)
+│   ├── make_plymouth.py       splash di avvio "jack-in" (Plymouth)
+│   ├── make_kvantum.py        tema Kvantum per le app Qt (condiviso con l'edizione KDE)
 │   ├── restart_wm.sh          riavvio di budgie-wm con correzione EWMH
 │   └── make_docs.py           immagini di anteprima del README
 ├── config/
 │   ├── conky/                 HUD (cyberneon.conf, hud.lua)
 │   ├── bash/prompt.bash       prompt
 │   ├── tilix/cyberneon.json   schema colori Tilix
-│   └── nemo-opacity.sh        trasparenza delle finestre di Nemo
+│   ├── nemo-opacity.sh        trasparenza delle finestre di Nemo
+│   └── live-wallpaper.py      sfondo animato "CyberNeon Live"
 ├── system/
 │   ├── install-login.sh       login (sudo)
 │   ├── install-grub.sh        GRUB (sudo)
+│   ├── install-plymouth.sh    splash di avvio (sudo)
 │   └── grub/theme.txt         tema GRUB
 ├── assets/
 │   ├── fonts/                 Chakra Petch, Rajdhani, Orbitron + licenze OFL
 │   └── logo/                  logo Arasaka (© CD PROJEKT S.A.) - vedi "Logo"
+├── lab/plymouth-preview.sh    anteprima della splash in un container Docker
 └── docs/                      screenshot e anteprime
 ```
 
@@ -276,6 +315,10 @@ sono nella tabella `HEX` di `scripts/build_theme.py`. Dopo una modifica: `./inst
 
 **Altro**
 - *Trasparenza di Nemo*: `NEMO_OPACITY` in `cyberneon.conf`.
+- *Sfondo animato*: velocità, colori e posizioni (coordinate dello sfondo 3840×2160) in testa a `config/live-wallpaper.py`.
+- *Angoli tagliati dei widget*: dimensione del taglio e trasparenze in `scripts/make_gtk_assets.py`; regole in fondo a
+  `theme/gtk-3.0-overrides.css` (sezione "HUD v2").
+- *Splash di avvio*: righe di stato, colori e tempi del flicker in `scripts/make_plymouth.py`.
 - *Dimensione del cursore*: `gsettings set org.gnome.desktop.interface cursor-size 32` (i file contengono 24/32/48/64 px).
 - *HUD*: statistiche e disegno in `config/conky/hud.lua` (`conky_parse('${cpu cpu0}')` ecc.); posizione in `config/conky/cyberneon.conf` (`gap_x`, `gap_y`).
 - *Prompt*: colori e glifi in `config/bash/prompt.bash`.
@@ -303,6 +346,19 @@ Cose scoperte durante lo sviluppo, utili se modifichi il tema.
 - **Trasparenza di Nemo**: Nemo non ha una finestra con canale alfa, quindi la trasparenza è quella del compositor
   (`_NET_WM_WINDOW_OPACITY`) e schiarisce un po' anche testo e cornice.
 - **ShowTime** applica posizione e formato della data solo al riavvio del pannello (`budgie-panel --replace`).
+- **Angoli tagliati in GTK3**: GTK3 non sa ritagliare le forme (niente `clip-path`), quindi pulsanti, campi e tooltip usano
+  `border-image` con un SVG 24×24 a 9 fette (taglio di 6 px). GTK3 non disegna la fetta centrale: l'interno è il
+  `background-color` limitato al `padding-box`, così gli angoli restano davvero trasparenti.
+- **Maiuscolo nei titoli**: GTK3 non supporta `text-transform`, quindi su Budgie il titolo delle finestre non è in maiuscolo
+  (su KDE sì, perché la cornice è in QML).
+- **Sfondo animato**: è una finestra di tipo `DESKTOP` trasparente, senza area di input (i clic arrivano al desktop di Nemo
+  sotto), sul monitor principale, come conky. Per i glitch usa lo sfondo vero, letto da `org.gnome.desktop.background`.
+- **Plymouth (modulo script)**: le variabili create dentro una funzione sono locali e lo sprite sparisce appena la funzione
+  termina; per il prompt della password servono `global.prompt_sprite` e simili.
+- **`pgrep -f` / `pkill -f`**: il pattern compare anche nella riga di comando della shell che lo lancia, che quindi
+  si uccide da sola; negli script si usa `pgrep -f '[n]ome'` solo quando il nome non compare altrove nel comando.
+- **Non portabili da KDE**: l'effetto glitch su apertura e chiusura delle finestre e le cornici in QML richiedono KWin;
+  budgie-wm (mutter) non permette effetti o decorazioni scritte dall'utente.
 - **Multi-monitor**: pannelli, HUD e orologio stanno sul monitor principale; lo sfondo usa `zoom` su ogni monitor
   (su un monitor verticale si vede la parte centrale, con il sigillo).
 
@@ -313,6 +369,8 @@ python3 scripts/make_docs.py   # docs/wallpaper.jpg, icons.png, cursors.png, pro
 ```
 
 `docs/desktop.png` è uno screenshot reale del desktop con la configurazione del repo (logo Arasaka di CD PROJEKT RED) e finestre dimostrative.
+Anche `docs/live-wallpaper.gif` (sfondo animato) e `docs/widgets.png` sono catture reali; `docs/plymouth.png` viene da
+`lab/plymouth-preview.sh`.
 `prompt.png`, `login.png` e `grub.png` sono illustrazioni fatte con gli asset reali del tema.
 
 ## Crediti, marchi e licenze

@@ -3,7 +3,7 @@
 
 usage: build_theme.py --overrides DIR [--src /usr/share/themes/Pocillo-dark] [--dst ~/.themes/CyberNeon]
 """
-import argparse, re, shutil
+import argparse, re, shutil, sys
 from pathlib import Path
 
 HEX = {
@@ -74,6 +74,11 @@ def main():
         css = dst / sub / "gtk.css"
         if css.exists():
             css.write_text(css.read_text() + "\n\n" + (ov / f"{sub}-overrides.css").read_text())
+
+    # cut-corner frame images used by the CSS border-image rules
+    import subprocess
+    subprocess.run([sys.executable, "-I", str(Path(__file__).resolve().parent / "make_gtk_assets.py"),
+                    str(dst / "gtk-3.0" / "assets")], check=True, stdout=subprocess.DEVNULL)
 
     (dst / "index.theme").write_text(
         "[Desktop Entry]\nType=X-GNOME-Metatheme\nName=CyberNeon\n"

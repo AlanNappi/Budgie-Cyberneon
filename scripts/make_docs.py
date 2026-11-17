@@ -83,7 +83,7 @@ for i, n in enumerate(apps):
 for i, n in enumerate(folders):
     p = pap / f"{n}.svg"
     if p.exists():
-        sheet.paste(im := svg(p, 72), (16 + 48 + i * 96, 124), im)
+        sheet.paste(im := svg(p, 72), (16 + i * 96, 124), im)
 d.text((16, 98), "top-bar logo  |  dock / app icons (original)", fill=CY, font=font("ChakraPetch-SemiBold.ttf", 14))
 d.text((16, 202), "Papirus-Dark folders, 'cyber' colour", fill=CY, font=font("ChakraPetch-SemiBold.ttf", 14))
 sheet.save(DOCS / "icons.png")
