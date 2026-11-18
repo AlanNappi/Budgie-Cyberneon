@@ -94,7 +94,7 @@ The core desktop theme installs strictly at user level with a single script (`./
 ## Installation
 
 ```bash
-git clone https://github.com/AlanNappi/Budgie-Cyberneon.git cyberneon-budgie
+git clone https://github.com/AlanNappi/Budgy-Cyberneon.git cyberneon-budgie
 cd cyberneon-budgie
 ./install.sh
 ```
@@ -383,7 +383,7 @@ Tutto il tema desktop si installa a livello utente con un singolo script (`./ins
 ## Installazione
 
 ```bash
-git clone https://github.com/AlanNappi/Budgie-Cyberneon.git cyberneon-budgie
+git clone https://github.com/AlanNappi/Budgy-Cyberneon.git cyberneon-budgie
 cd cyberneon-budgie
 ./install.sh
 ```
