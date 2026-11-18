@@ -317,7 +317,7 @@ Tutto il tema desktop si installa a livello utente con un singolo script. Login,
 - [Installazione](#installazione)
 - [Configurazione (`cyberneon.conf`)](#configurazione-cyberneonconf)
 - [Cambiare il logo](#cambiare-il-logo)
-- [Cosa fa `install.sh` sotto il cofano](#cosa-fa-installsh-sotto-il-cofano)
+- [Cosa fa `install.sh`](#cosa-fa-installsh)
 - [Login (LightDM), GRUB e Plymouth](#login-lightdm-grub-e-plymouth)
 - [Disinstallazione](#disinstallazione)
 - [Struttura del repository](#struttura-del-repository)
@@ -430,7 +430,7 @@ Se vuoi sostituirlo con un tuo logo personale:
 
 Se invece imposti `LOGO=""`, lo script disegna lo stemma originale di CyberNeon (un esagono con visiera a V).
 
-## Cosa fa `install.sh` sotto il cofano
+## Cosa fa `install.sh`
 
 1. **Verifica dell'ambiente**: controlla che la sessione sia X11/Budgie, verifica i moduli Python e rileva geometria e risoluzione del monitor primario tramite `xrandr`.
 2. **Backup**: salva in `~/.local/share/cyberneon/backups/<data-ora>/` il dump completo di `dconf`, `~/.bashrc`, `~/.config/gtk-4.0/gtk.css`, l'autostart di Plank, `~/.xsessionrc` e la config di Kvantum. Alla primissima esecuzione congela una copia in `backups/pristine/`, usata da `uninstall.sh` per riportare il sistema allo stato vergine.
