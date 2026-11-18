@@ -14,11 +14,11 @@
 
 A full desktop suite that turns **Ubuntu Budgie 24.04 (Budgie 10.9 on X11)** into a netrunner workstation inspired by *Cyberpunk 2077*'s UI: midnight blue backgrounds, neon red window frames, cyan text and icons, 45° chamfered corners, a live system HUD, and a themed terminal.
 
-It includes a lightweight animated wallpaper (scanline, rotating arcs, blinking network nodes, data packets, and periodic glitches), GTK widgets with true chamfered corners, and a Plymouth boot splash (`// JACKING IN`) between GRUB and the login screen.
+It includes a lightweight animated wallpaper (scanline, rotating arcs, blinking network nodes, data packets, and periodic glitches), GTK widgets with true chamfered corners, and an optional Plymouth boot splash (`// JACKING IN`) between GRUB and the login screen.
 
 ![CyberNeon Live Animated Wallpaper](docs/live-wallpaper.gif)
 
-The entire desktop theme installs at user level with a single script. Login screen, GRUB, and Plymouth have their own separate installers (requiring `sudo`). Every run automatically backs up your current configuration, and `uninstall.sh` restores everything back to how it was.
+The core desktop theme installs strictly at user level with a single script (`./install.sh`) and requires no root privileges. System-level assets — login screen, GRUB, and Plymouth boot splash — are **completely optional**: they have their own separate `sudo` scripts and can be safely omitted if you prefer not to touch system files. Every run automatically backs up your current configuration, and `uninstall.sh` restores everything back to how it was.
 
 ---
 
@@ -31,7 +31,7 @@ The entire desktop theme installs at user level with a single script. Login scre
 - [Configuration (`cyberneon.conf`)](#configuration-cyberneonconf)
 - [Changing the Logo](#changing-the-logo)
 - [What `install.sh` Does Under the Hood](#what-installsh-does-under-the-hood)
-- [Login (LightDM), GRUB, and Plymouth](#login-lightdm-grub-and-plymouth)
+- [Optional System Assets: Login (LightDM), GRUB, and Plymouth](#optional-system-assets-login-lightdm-grub-and-plymouth)
 - [Uninstalling](#uninstalling)
 - [Repository Structure](#repository-structure)
 - [Advanced Customization](#advanced-customization)
@@ -55,8 +55,8 @@ The entire desktop theme installs at user level with a single script. Login scre
 | **Conky HUD & ShowTime** | Bottom-right: real-time CPU, RAM, and disk monitor with diagonal hazard stripes and a vertical nameplate showing your username. Top-right: ShowTime desktop clock using Orbitron. |
 | **Terminal & Prompt** | CyberNeon color scheme for Tilix + two-line bash prompt with red/cyan segments and git branch indicator (requires a Nerd Font). Also applies slight transparency (90%) to Nemo file manager windows. |
 | **Fonts** | Chakra Petch, Rajdhani, and Orbitron (SIL OFL license, bundled in `assets/fonts`). |
-| **Login, GRUB & Plymouth** | Theme for `slick-greeter` (LightDM), custom GRUB boot menu, and a Plymouth boot splash (`// JACKING IN`) featuring a flickering logo power-on, striped progress bar, status lines, and a custom HUD prompt for LUKS encrypted disk unlocking. |
-| **Qt Apps (Kvantum)** | If Kvantum is installed, automatically applies the matching HUD style to Qt applications. |
+| **Login, GRUB & Plymouth *(Optional)*** | Not required for the desktop theme and can be skipped. Includes a theme for `slick-greeter` (LightDM), custom GRUB boot menu, and a Plymouth boot splash (`// JACKING IN`) with LUKS password HUD. Installed individually via separate `sudo` scripts. |
+| **Qt Apps (Kvantum, *Optional*)** | If Kvantum is installed, automatically applies the matching HUD style to Qt applications. |
 
 ## Screenshots
 
@@ -86,7 +86,7 @@ The entire desktop theme installs at user level with a single script. Login scre
                    x11-utils x11-xserver-utils curl ubuntu-budgie-themes conky-all
   ```
 
-  `ubuntu-budgie-themes` provides the Pocillo-dark base, `conky-all` runs the system HUD, and `grub-common` (`grub-mkfont`) is only needed if you install the GRUB theme.
+  `ubuntu-budgie-themes` provides the Pocillo-dark base, `conky-all` runs the system HUD, and `grub-common` (`grub-mkfont`) is only needed if you decide to install the optional GRUB theme.
 - An active internet connection on the first run to download Papirus (~33 MB).
 - Recommended: **JetBrainsMono Nerd Font** for prompt glyphs.
 - The diagonal panel joint is calibrated for a **16:9** primary monitor (resolution is detected automatically).
@@ -113,7 +113,7 @@ Once finished:
 - **Cursor and theme**: active immediately (already running apps will pick up the new cursor on restart).
 - **Bash prompt**: active in all newly opened terminal tabs/windows.
 - **Live wallpaper**: starts right away and is added to autostart (`~/.config/autostart/cyberneon-live-wallpaper.desktop`).
-- **Login, GRUB, and Plymouth**: optional, installed separately via the [system scripts](#login-lightdm-grub-and-plymouth).
+- **Login, GRUB, and Plymouth**: **not installed by default**. They are non-essential and can be omitted; if you want them, run their [optional system scripts](#optional-system-assets-login-lightdm-grub-and-plymouth).
 
 ## Configuration (`cyberneon.conf`)
 
@@ -150,19 +150,21 @@ If you set `LOGO=""`, the generator draws the original CyberNeon crest (a hexago
 3. **Fonts & Papirus**: installs fonts to `~/.local/share/fonts/cyberneon/` and fetches Papirus (pinned release `20260801`, or latest if `PAPIRUS_TAG=latest` is set) into `~/.local/share/icons/Papirus{,-Dark}`, applying the custom "cyber" folder color.
 4. **GTK theme build**: runs `scripts/build_theme.py` to recolor Pocillo-dark, inject custom CSS overrides (`theme/*-overrides.css`), generate 9-slice SVG border assets for chamfered corners (`make_gtk_assets.py`), and write the libadwaita palette.
 5. **Icons & Cursors**: builds `CyberNeon-Icons` (`make_icons.py` + `make_logo_icon.py`) and writes raw Xcursor binaries directly into `CyberNeon-Cursors` (`make_cursors.py`), creating the required symlinks in `~/.icons/`. Also creates a local `.desktop` override for the Firefox Snap so it obeys the custom icon theme.
-6. **Wallpapers & system assets**: renders the 4K wallpaper (`make_wallpaper.py`) and stages LightDM, GRUB (`.pf2` fonts and pixmaps), and Plymouth assets inside `~/.local/share/cyberneon/system/`.
+6. **Wallpapers & staged system assets**: renders the 4K wallpaper (`make_wallpaper.py`) and pre-generates LightDM, GRUB, and Plymouth assets inside `~/.local/share/cyberneon/system/` (ready to be used only if you later choose to run the system installers).
 7. **Desktop configuration**: applies GTK/WM themes, icons, cursors, and fonts via `gsettings`, rebuilds the Budgie panels (`panels.py`), disables Plank, positions the ShowTime clock, and loads the Tilix color scheme.
 8. **User services**: adds the prompt hook to `~/.bashrc`, sets up the Conky HUD, Nemo opacity daemon, live wallpaper autostart, and Kvantum theme (if installed).
 9. **Hot reload**: restarts `budgie-wm` (automatically fixing the `_NET_SUPPORTING_WM_CHECK` X11 root property), `budgie-panel`, Conky, and the live wallpaper.
 
-## Login (LightDM), GRUB, and Plymouth
+## Optional System Assets: Login (LightDM), GRUB, and Plymouth
 
-Run `./install.sh` at least once as your regular user (to generate the system assets), then install the system-wide components you want:
+> **Note:** Installing these components is **not required** for the desktop theme to work. If you prefer to keep all changes strictly within your user home directory or don't want to touch your bootloader/initramfs, you can skip all of them (or pick only the ones you want).
+
+If you decide to install them, run `./install.sh` at least once as your regular user (to generate the staged assets), then run any of the following:
 
 ```bash
-sudo bash system/install-login.sh      # slick-greeter theme (LightDM)
-sudo bash system/install-grub.sh       # GRUB bootloader theme
-sudo bash system/install-plymouth.sh   # Plymouth boot splash ("jack-in")
+sudo bash system/install-login.sh      # Optional: slick-greeter theme (LightDM)
+sudo bash system/install-grub.sh       # Optional: GRUB bootloader theme
+sudo bash system/install-plymouth.sh   # Optional: Plymouth boot splash ("jack-in")
 ```
 
 ### `install-login.sh` (LightDM)
@@ -178,7 +180,7 @@ sudo bash system/install-plymouth.sh   # Plymouth boot splash ("jack-in")
 ### Plymouth Boot Splash
 - Copies the theme into `/usr/share/plymouth/themes/cyberneon/`, registers it as `default.plymouth` via `update-alternatives`, and rebuilds the initramfs (`update-initramfs -u`). Requires `splash` in `GRUB_CMDLINE_LINUX_DEFAULT` (present by default on Ubuntu).
 - **To revert**: `sudo bash system/install-plymouth.sh --undo`.
-- **Preview in Docker without rebooting**: run `bash lab/plymouth-preview.sh` to spin up Ubuntu 24.04's actual Plymouth inside a disposable headless container and dump screenshots of the boot sequence and LUKS password prompt into `lab/out/` without touching your host system.
+- **Preview in Docker without installing or rebooting**: run `bash lab/plymouth-preview.sh` to spin up Ubuntu 24.04's actual Plymouth inside a disposable headless container and dump screenshots of the boot sequence and LUKS password prompt into `lab/out/` without touching your host system.
 
 ## Uninstalling
 
@@ -187,7 +189,7 @@ sudo bash system/install-plymouth.sh   # Plymouth boot splash ("jack-in")
 ./uninstall.sh --purge  # Same as above, plus removes bundled fonts and Papirus icons
 ```
 
-Restores the `dconf` dump from `backups/pristine/`, cleans up theme files, configs, autostarts, and the `~/.bashrc` prompt block, stops the live wallpaper, re-enables Plank, and restarts the window manager and panels. System-level tweaks (LightDM, GRUB, Plymouth) can be reverted with the commands listed above.
+Restores the `dconf` dump from `backups/pristine/`, cleans up theme files, configs, autostarts, and the `~/.bashrc` prompt block, stops the live wallpaper, re-enables Plank, and restarts the window manager and panels. If you installed any of the optional system-level tweaks (LightDM, GRUB, Plymouth), revert them with the commands listed in the section above.
 
 ## Repository Structure
 
@@ -205,7 +207,7 @@ cyberneon-budgie/
 │   ├── make_icons.py          ringed dock icons and menu badge generator
 │   ├── make_logo_icon.py      converts custom logo into the Budgie AppMenu icon
 │   ├── make_cursors.py        direct Xcursor binary builder
-│   ├── make_wallpaper.py      procedural 4K wallpaper generator
+│   ├── make_wallpaper.py      4K wallpaper generator
 │   ├── make_system_assets.py  LightDM and GRUB asset generator
 │   ├── make_plymouth.py       Plymouth script and sprite builder
 │   ├── make_kvantum.py        Kvantum theme builder for Qt apps
@@ -220,7 +222,7 @@ cyberneon-budgie/
 │   ├── tilix/cyberneon.json   Tilix color scheme
 │   ├── nemo-opacity.sh        X11 daemon for Nemo window transparency
 │   └── live-wallpaper.py      animated wallpaper engine (GTK/Cairo on X11)
-├── system/                    system installers (LightDM, GRUB, Plymouth)
+├── system/                    optional system installers (LightDM, GRUB, Plymouth)
 ├── assets/                    fonts (SIL OFL) and Arasaka logo (© CD PROJEKT S.A.)
 ├── lab/plymouth-preview.sh    Docker harness to preview Plymouth headlessly
 └── docs/                      screenshots and GIFs
@@ -301,11 +303,11 @@ python3 scripts/make_docs.py   # Rebuilds docs/wallpaper.jpg, icons.png, cursors
 
 Un tema completo che trasforma **Ubuntu Budgie 24.04 (Budgie 10.9 su X11)** in una postazione da netrunner ispirata alle interfacce di *Cyberpunk 2077*: fondo blu notte, cornici rosso neon, testi e icone ciano, angoli tagliati a 45°, HUD di sistema e terminale a tema.
 
-Include uno sfondo animato leggero (scansione, nodi di rete, pacchetti dati e glitch), widget GTK con veri angoli smussati e una splash di boot Plymouth (`// JACKING IN`) tra GRUB e il login.
+Include uno sfondo animato leggero (scansione, nodi di rete, pacchetti dati e glitch), widget GTK con veri angoli smussati e, opzionalmente, una splash di boot Plymouth (`// JACKING IN`) tra GRUB e il login.
 
 ![Sfondo animato CyberNeon Live](docs/live-wallpaper.gif)
 
-Tutto il tema desktop si installa a livello utente con un singolo script. Login, GRUB e Plymouth hanno i rispettivi installer separati (richiedono `sudo`). Ogni installazione fa un backup automatico della configurazione attuale e `uninstall.sh` ripristina tutto com'era prima.
+Tutto il tema desktop si installa a livello utente con un singolo script (`./install.sh`), senza bisogno di permessi di root. Gli asset di sistema — schermata di login, GRUB e splash di avvio Plymouth — **non sono fondamentali per il funzionamento del tema**: hanno script separati con `sudo` e possono essere tranquillamente omessi se non vuoi modificare file di sistema. Ogni installazione fa un backup automatico della configurazione attuale e `uninstall.sh` ripristina tutto com'era prima.
 
 ---
 
@@ -317,8 +319,8 @@ Tutto il tema desktop si installa a livello utente con un singolo script. Login,
 - [Installazione](#installazione)
 - [Configurazione (`cyberneon.conf`)](#configurazione-cyberneonconf)
 - [Cambiare il logo](#cambiare-il-logo)
-- [Cosa fa `install.sh`](#cosa-fa-installsh)
-- [Login (LightDM), GRUB e Plymouth](#login-lightdm-grub-e-plymouth)
+- [Cosa fa `install.sh` sotto il cofano](#cosa-fa-installsh-sotto-il-cofano)
+- [Asset di sistema opzionali: Login (LightDM), GRUB e Plymouth](#asset-di-sistema-opzionali-login-lightdm-grub-e-plymouth)
 - [Disinstallazione](#disinstallazione)
 - [Struttura del repository](#struttura-del-repository)
 - [Personalizzazione avanzata](#personalizzazione-avanzata)
@@ -342,8 +344,8 @@ Tutto il tema desktop si installa a livello utente con un singolo script. Login,
 | **HUD Conky e ShowTime** | In basso a destra: monitor CPU, RAM e disco in tempo reale con pattern a strisce e targhetta verticale col nome utente. In alto a destra: orologio ShowTime in font Orbitron. |
 | **Terminale e Prompt** | Schema colori per Tilix + prompt bash su due righe con segmenti rosso/ciano e branch git (richiede un Nerd Font). Leggera trasparenza (90%) applicata anche al file manager Nemo. |
 | **Font** | Chakra Petch, Rajdhani e Orbitron (licenza SIL OFL, già inclusi in `assets/fonts`). |
-| **Login, GRUB e Plymouth** | Tema per `slick-greeter` (LightDM), menu GRUB custom e splash di boot Plymouth (`// JACKING IN`) con accensione del logo in flicker, barra di caricamento e prompt HUD per lo sblocco dei dischi cifrati (LUKS). |
-| **App Qt (Kvantum)** | Se Kvantum è installato, applica automaticamente lo stesso tema HUD alle applicazioni Qt. |
+| **Login, GRUB e Plymouth *(Opzionali)*** | Non fondamentali per il tema desktop, possono essere omessi. Includono il tema per `slick-greeter` (LightDM), menu GRUB custom e splash di boot Plymouth (`// JACKING IN`) con prompt HUD per dischi cifrati (LUKS). Si installano singolarmente con script `sudo` separati. |
+| **App Qt (Kvantum, *Opzionale*)** | Se Kvantum è installato, applica automaticamente lo stesso tema HUD alle applicazioni Qt. |
 
 ## Screenshot
 
@@ -373,7 +375,7 @@ Tutto il tema desktop si installa a livello utente con un singolo script. Login,
                    x11-utils x11-xserver-utils curl ubuntu-budgie-themes conky-all
   ```
 
-  `ubuntu-budgie-themes` serve come base per Pocillo-dark, `conky-all` per l'HUD e `grub-common` (`grub-mkfont`) solo se installi il tema GRUB.
+  `ubuntu-budgie-themes` serve come base per Pocillo-dark, `conky-all` per l'HUD e `grub-common` (`grub-mkfont`) solo se decidi di installare anche il tema opzionale per GRUB.
 - Connessione a Internet al primo avvio dell'installer per scaricare Papirus (~33 MB).
 - Consigliato **JetBrainsMono Nerd Font** per i glifi del prompt bash.
 - Il raccordo geometrico tra i pannelli è calibrato per un monitor principale **16:9** (la risoluzione viene rilevata in automatico).
@@ -400,7 +402,7 @@ Una volta terminato:
 - **Cursore e tema**: attivi da subito (le app già aperte aggiorneranno il cursore al prossimo riavvio).
 - **Prompt bash**: attivo in tutti i nuovi terminali.
 - **Sfondo animato**: parte immediatamente e viene messo in autostart (`~/.config/autostart/cyberneon-live-wallpaper.desktop`).
-- **Login, GRUB e Plymouth**: opzionali, si installano a parte con gli [script di sistema](#login-lightdm-grub-e-plymouth).
+- **Login, GRUB e Plymouth**: **non vengono installati di default**. Non sono fondamentali e possono essere omessi; se vuoi aggiungerli, puoi usare i relativi [script di sistema opzionali](#asset-di-sistema-opzionali-login-lightdm-grub-e-plymouth).
 
 ## Configurazione (`cyberneon.conf`)
 
@@ -430,26 +432,28 @@ Se vuoi sostituirlo con un tuo logo personale:
 
 Se invece imposti `LOGO=""`, lo script disegna lo stemma originale di CyberNeon (un esagono con visiera a V).
 
-## Cosa fa `install.sh`
+## Cosa fa `install.sh` sotto il cofano
 
 1. **Verifica dell'ambiente**: controlla che la sessione sia X11/Budgie, verifica i moduli Python e rileva geometria e risoluzione del monitor primario tramite `xrandr`.
 2. **Backup**: salva in `~/.local/share/cyberneon/backups/<data-ora>/` il dump completo di `dconf`, `~/.bashrc`, `~/.config/gtk-4.0/gtk.css`, l'autostart di Plank, `~/.xsessionrc` e la config di Kvantum. Alla primissima esecuzione congela una copia in `backups/pristine/`, usata da `uninstall.sh` per riportare il sistema allo stato vergine.
 3. **Font e Papirus**: copia i font in `~/.local/share/fonts/cyberneon/` e scarica Papirus (release `20260801`, o l'ultima se passi `PAPIRUS_TAG=latest`) in `~/.local/share/icons/Papirus{,-Dark}` applicando le cartelle color ciano/petrolio.
 4. **Build del tema GTK**: esegue `scripts/build_theme.py` che ricolora Pocillo-dark, inietta i CSS custom (`theme/*-overrides.css`), genera gli asset SVG a 9-slice per gli angoli tagliati (`make_gtk_assets.py`) e scrive la palette per libadwaita.
 5. **Icone e Cursori**: genera `CyberNeon-Icons` (`make_icons.py` + `make_logo_icon.py`) e scrive direttamente i binari Xcursor in `CyberNeon-Cursors` (`make_cursors.py`), creando i symlink necessari in `~/.icons/`. Crea anche un override locale del `.desktop` di Firefox Snap per fargli usare l'icona del tema.
-6. **Sfondi e asset di sistema**: genera il wallpaper 4K (`make_wallpaper.py`) e prepara in `~/.local/share/cyberneon/system/` sfondi, font `.pf2` e script per LightDM, GRUB e Plymouth.
+6. **Sfondi e preparazione asset di sistema**: genera il wallpaper 4K (`make_wallpaper.py`) e prepara in `~/.local/share/cyberneon/system/` gli asset per LightDM, GRUB e Plymouth (che restano lì pronti all'uso solo se deciderai di installarli).
 7. **Configurazione desktop**: applica temi e font via `gsettings`, ricostruisce i pannelli di Budgie (`panels.py`), disattiva Plank, posiziona l'orologio ShowTime e carica la palette di Tilix.
 8. **Servizi utente**: attiva il prompt in `~/.bashrc`, configura l'HUD Conky, lo script di trasparenza per Nemo, il processo del live wallpaper e (se presente) il tema Kvantum per Qt.
 9. **Reload a caldo**: riavvia `budgie-wm` (correggendo al volo la proprietà X11 `_NET_SUPPORTING_WM_CHECK`), `budgie-panel`, Conky e lo sfondo animato.
 
-## Login (LightDM), GRUB e Plymouth
+## Asset di sistema opzionali: Login (LightDM), GRUB e Plymouth
 
-Dopo aver lanciato `./install.sh` almeno una volta da utente normale (serve a generare gli asset), puoi installare i componenti di sistema:
+> **Nota:** L'installazione di questi tre componenti **non è fondamentale** per usare CyberNeon. Se preferisci mantenere tutte le modifiche confinate nella tua home utente senza toccare bootloader, initramfs o display manager, puoi tranquillamente ometterli tutti (oppure installare solo quello che ti interessa).
+
+Se decidi di installarli, assicurati di aver lanciato `./install.sh` almeno una volta da utente normale (serve a generare i file nella home), poi esegui uno o più dei seguenti script:
 
 ```bash
-sudo bash system/install-login.sh      # Tema per slick-greeter (LightDM)
-sudo bash system/install-grub.sh       # Tema per il bootloader GRUB
-sudo bash system/install-plymouth.sh   # Splash screen di boot (Plymouth)
+sudo bash system/install-login.sh      # Opzionale: tema per slick-greeter (LightDM)
+sudo bash system/install-grub.sh       # Opzionale: tema per il bootloader GRUB
+sudo bash system/install-plymouth.sh   # Opzionale: splash screen di boot (Plymouth)
 ```
 
 ### `install-login.sh` (LightDM)
@@ -465,7 +469,7 @@ sudo bash system/install-plymouth.sh   # Splash screen di boot (Plymouth)
 ### `install-plymouth.sh` (Plymouth)
 - Copia il tema in `/usr/share/plymouth/themes/cyberneon/`, lo imposta come predefinito tramite `update-alternatives` e rigenera l'initramfs (`update-initramfs -u`). Richiede che `splash` sia presente in `GRUB_CMDLINE_LINUX_DEFAULT` (su Ubuntu c'è già di default).
 - **Per rimuoverlo**: `sudo bash system/install-plymouth.sh --undo`.
-- **Test in container senza riavviare**: puoi lanciare `bash lab/plymouth-preview.sh` per far girare il vero Plymouth di Ubuntu 24.04 dentro un container Docker headless e salvare gli screenshot della sequenza di boot e del prompt LUKS in `lab/out/` senza toccare il tuo PC.
+- **Test in container senza installare né riavviare**: puoi lanciare `bash lab/plymouth-preview.sh` per far girare il vero Plymouth di Ubuntu 24.04 dentro un container Docker headless e salvare gli screenshot della sequenza di boot e del prompt LUKS in `lab/out/` senza toccare il tuo PC.
 
 ## Disinstallazione
 
@@ -474,7 +478,7 @@ sudo bash system/install-plymouth.sh   # Splash screen di boot (Plymouth)
 ./uninstall.sh --purge  # Come sopra, ma rimuove anche i font e il pacchetto icone Papirus
 ```
 
-Lo script ricarica il dump `dconf` salvato in `backups/pristine/`, pulisce i file di configurazione, ferma il live wallpaper, riattiva Plank e riavvia window manager e pannelli. I componenti di sistema installati con `sudo` (LightDM, GRUB, Plymouth) si rimuovono con i comandi indicati nella sezione precedente.
+Lo script ricarica il dump `dconf` salvato in `backups/pristine/`, pulisce i file di configurazione, ferma il live wallpaper, riattiva Plank e riavvia window manager e pannelli. Se hai installato anche qualcuno dei componenti di sistema opzionali con `sudo` (LightDM, GRUB, Plymouth), puoi rimuoverli con i comandi indicati nella sezione precedente.
 
 ## Struttura del repository
 
@@ -507,7 +511,7 @@ cyberneon-budgie/
 │   ├── tilix/cyberneon.json   palette colori per Tilix
 │   ├── nemo-opacity.sh        demone X11 per la trasparenza di Nemo
 │   └── live-wallpaper.py      motore dello sfondo animato (GTK/Cairo su X11)
-├── system/                    installer di sistema (LightDM, GRUB, Plymouth)
+├── system/                    installer di sistema opzionali (LightDM, GRUB, Plymouth)
 ├── assets/                    font (SIL OFL) e logo Arasaka (© CD PROJEKT S.A.)
 ├── lab/plymouth-preview.sh    ambiente Docker per testare Plymouth senza riavvio
 └── docs/                      screenshot e GIF
