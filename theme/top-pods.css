@@ -1,0 +1,60 @@
+
+/* CyberNeon: the top bar becomes two floating pods, as in the KDE edition (DOCK_POSITION="bottom").
+ * Top left: logo menu and workspaces. Top right: tray, clock and system menus.
+ * The pods are the panel's start and end regions (panels.py turns on theme-regions); the panel itself is
+ * transparent. As with the dock, only the sides have a border, so the panel keeps the height it reserves. */
+.top .budgie-panel, .top .budgie-panel.transparent {
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+  border: none;
+}
+.top .shadow-block { background-image: none; background-color: transparent; }
+
+.top .budgie-panel .start-region,
+.top .budgie-panel .end-region {
+  background-color: transparent;
+  background-image: url("assets/cn-pod-mid.svg");
+  background-size: auto 100%;
+  background-repeat: repeat-x;      /* tiled, not stretched: a stretched 8 px image fades at its ends */
+  background-origin: padding-box;
+  background-clip: padding-box;
+  border-style: solid;
+  border-width: 0 20px;
+  border-radius: 0;
+  border-image: url("assets/cn-pod.svg") 0 20 0 20 stretch;
+}
+.top .budgie-panel .start-region { margin-left: 2px; }
+.top .budgie-panel .end-region   { margin-right: 2px; }
+
+/* buttons stay inside the pod (the frame runs from 8 to 44 px) */
+.top .budgie-panel button,
+.top .budgie-panel button:backdrop {
+  margin-top: 11px;
+  margin-bottom: 11px;
+  border-radius: 0;
+}
+
+/* workspaces: plain tiles like a pager, no window icons */
+.top .budgie-panel .workspace-switcher { margin: 0 4px; }
+.top .budgie-panel .workspace-item {
+  border: none;
+  margin: 0 1px;
+  padding: 0;
+  background-color: transparent;
+  background-image: url("assets/cn-ws.svg");
+  background-size: 44px 18px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.top .budgie-panel .workspace-item:hover { background-color: transparent; }
+.top .budgie-panel .workspace-item.current-workspace { background-image: url("assets/cn-ws-active.svg"); }
+.top .budgie-panel .workspace-item * { opacity: 0; }
+
+/* the clock in the same face as the HUD counters */
+.top .budgie-clock-applet label {
+  font-family: "Orbitron", "Chakra Petch", sans-serif;
+  font-weight: 500;
+  font-size: 12pt;
+  color: @cy;
+}

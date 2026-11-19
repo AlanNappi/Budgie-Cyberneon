@@ -1,0 +1,42 @@
+
+/* CyberNeon: dock at the bottom centre (DOCK_POSITION="bottom"), a floating bar of quick slots like a game HUD.
+ * Only the sides have a border, so the panel stays exactly as tall as the strip it reserves on the screen.
+ * It holds the app launchers only: the logo menu and the workspaces live in the top-left pod (top-pods.css). */
+.bottom .budgie-panel, .bottom .budgie-panel.transparent {
+  background-color: transparent;
+  background-image: url("assets/cn-dock-mid.svg");
+  background-size: auto 100%;
+  background-repeat: repeat-x;      /* tiled, not stretched: a stretched 8 px image fades at its ends */
+  background-origin: padding-box;
+  background-clip: padding-box;
+  border-style: solid;
+  border-width: 0 20px;
+  border-radius: 0;
+  border-image: url("assets/cn-dock.svg") 0 20 0 20 stretch;
+  box-shadow: none;
+}
+.bottom .shadow-block { background-image: none; background-color: transparent; }
+
+/* slots: invisible at rest, an outline on hover, a cyan plate for the active window */
+.bottom .budgie-panel button,
+.bottom .budgie-panel button:backdrop {
+  border: 3px solid transparent;
+  border-radius: 0;
+  border-image: none;
+  background-color: transparent;
+  background-image: none;
+  background-clip: padding-box;
+  padding: 0;
+  margin: 6px 5px 12px;
+  min-width: 50px;
+  min-height: 0;
+}
+.bottom .budgie-panel button:hover {
+  border-image: url("assets/cn-slot-hover.svg") 6 6 6 6 stretch;
+  background-color: alpha(@cy, 0.10);
+}
+.bottom .budgie-panel button:checked,
+.bottom .budgie-panel button:checked:hover {
+  border-image: url("assets/cn-slot-active.svg") 6 6 6 6 stretch;
+  background-color: alpha(@cy, 0.30);
+}

@@ -1,37 +1,34 @@
-#!/usr/bin/env python3
 """CyberNeon Live for Budgie: animated layers over the static CyberNeon wallpaper (original artwork).
 
-A transparent, click-through "desktop" window on the primary monitor (like conky) that draws: falling hex columns,
-arcs rotating around the sigil, blinking network nodes and a pulsing target, data packets on the highlighted route,
-a scan line and short periodic glitches (slices of the real wallpaper displaced for ~130 ms).
-The positions are the wallpaper's own coordinates (3840x2160, "zoom"), so they sit on the drawn elements.
-
-usage: live-wallpaper.py [--fps 20]
+A transparent, click-through "desktop" window on the primary monitor that draws falling hex columns, arcs rotating around
+the sigil, blinking network nodes and a pulsing target, data packets on the highlighted route, a scan line and short
+periodic glitches (slices of the real wallpaper displaced for ~130 ms). The positions are the wallpaper's own coordinates
+(3840x2160, "zoom"), so they sit on the drawn elements. With the game HUD it can also show the live terminal and the alert.
 FAN MADE - inspired by Cyberpunk 2077 by CD PROJEKT RED (trademarks of CD PROJEKT S.A.).
 """
-import math, random, sys, time
+import math, random, time
 from urllib.parse import unquote, urlparse
 
 import cairo
 import gi
 gi.require_version("Gtk", "3.0"); gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, Gio, GLib, Gtk
+from gi.repository import Gdk, Gio, Gtk
 
-FPS = int(sys.argv[sys.argv.index("--fps") + 1]) if "--fps" in sys.argv else 20
-CY, RED = (0.357, 0.933, 0.863), (1.0, 0.165, 0.31)
+from cn_draw import CY, MONO, RED, new_layer, text
+
 NODES = [(2820, 330), (3080, 250), (3330, 380), (3560, 280), (2950, 560), (3220, 620), (3480, 560), (3100, 860)]
 TARGET = (3650, 760)
 ROUTE = [(2820, 330), (2950, 560), (3220, 620), (3480, 560), (3650, 760)]
 SIGIL = (1920, 1010)
 HEX = "0123456789ABCDEF"
+PLATE = (236, 384, 1028, 752)          # the terminal inside the wallpaper image (x, y, width, height)
+DARK = (0.027, 0.051, 0.102)
 
 
 class Live(Gtk.Window):
-    def __init__(self):
+    def __init__(self, geometry, plate_path=""):
         super().__init__(title="cyberneon-live-wallpaper")
-        display = Gdk.Display.get_default()
-        mon = display.get_primary_monitor() or display.get_monitor(0)
-        g = mon.get_geometry()
+        g = geometry
         self.W, self.H = g.width, g.height
         screen = self.get_screen()
         if screen.get_rgba_visual():
@@ -44,14 +41,17 @@ class Live(Gtk.Window):
         self.move(g.x, g.y); self.set_default_size(g.width, g.height)
         self.connect("draw", self.on_draw)
         self.connect("realize", lambda w: w.input_shape_combine_region(cairo.Region()))   # click-through
-        self.connect("destroy", Gtk.main_quit)
 
         # wallpaper image -> screen mapping ("zoom" on a 3840x2160 image)
         self.sc = max(self.W / 3840, self.H / 2160)
         self.ox, self.oy = (self.W - 3840 * self.sc) / 2, (self.H - 2160 * self.sc) / 2
-        self.wall = None
+        self.wall = None; self.scene = None
+        self.alert = False
+        self.plate = None; self.terminal = None; self.rows = []
+        self.load_plate(plate_path)
         self.load_wallpaper()
-        Gio.Settings.new("org.gnome.desktop.background").connect("changed::picture-uri", lambda *a: self.load_wallpaper())
+        self.bg = Gio.Settings.new("org.gnome.desktop.background")
+        self.bg.connect("changed::picture-uri", lambda *a: self.load_wallpaper())
 
         rnd = random.Random(2077)
         self.cols = [{"x": self.W * ((i * 0.137 + 0.06) % 1), "dur": 14 + (i * 3.779) % 9,
@@ -59,8 +59,18 @@ class Live(Gtk.Window):
         self.node_periods = [(0.9 + (i * 1.373) % 4.2, (i * 0.61) % 3) for i in range(len(NODES))]
         self.route_len = [math.dist(ROUTE[i], ROUTE[i + 1]) for i in range(len(ROUTE) - 1)]
         self.glitch_at, self.glitch_seed = time.monotonic() + 9, 1
-        self.t0 = time.monotonic()
-        GLib.timeout_add(int(1000 / FPS), self.tick)
+        self.t = 0.0; self.last = time.monotonic()
+        self.banner = self.make_banner()
+        self.edges = self.make_edges()
+
+    # ------------------------------------------------------------ static layers
+    def load_plate(self, path):
+        if not path:
+            return
+        try:
+            self.plate = cairo.ImageSurface.create_from_png(path)
+        except (cairo.Error, MemoryError, OSError):
+            self.plate = None
 
     def load_wallpaper(self):
         uri = Gio.Settings.new("org.gnome.desktop.background").get_string("picture-uri")
@@ -73,21 +83,77 @@ class Live(Gtk.Window):
             self.wall = surf
         except Exception:
             self.wall = None
+        self.compose_scene()
+
+    def compose_scene(self):
+        """What the glitch slices copy: the image and, when active, the live terminal."""
+        if self.wall is None or self.terminal is None:
+            self.scene = self.wall
+            return
+        scene, cr = new_layer(self.W, self.H)
+        cr.set_source_surface(self.wall, 0, 0); cr.paint()
+        cr.set_source_surface(self.terminal, round(self.mx(PLATE[0])), round(self.my(PLATE[1]))); cr.paint()
+        self.scene = scene
+
+    def set_rows(self, rows):
+        """Redraws the terminal: same place, plate and type as the text painted in the image."""
+        if self.plate is None or rows == self.rows:
+            return
+        self.rows = rows
+        sc = self.sc; w, h = math.ceil(PLATE[2] * sc), math.ceil(PLATE[3] * sc)
+        surf, cr = new_layer(w, h)
+        cr.save(); cr.scale(w / self.plate.get_width(), h / self.plate.get_height())
+        cr.set_source_surface(self.plate, 0, 0); cr.get_source().set_filter(cairo.FILTER_BEST); cr.paint(); cr.restore()
+        px = max(9, 30 * sc)
+        for i, (s, color, alpha) in enumerate(rows):
+            if s:
+                text(cr, s, 28 * sc, (56 + i * 56) * sc - px * 1.02, MONO, px, RED if color == "red" else CY, alpha,
+                     width=w - 56 * sc)
+        self.terminal = surf
+        self.compose_scene()
+
+    def make_banner(self):
+        sc = self.sc; px = max(10, 32 * sc)
+        probe, cr = new_layer(1, 1)
+        tw = text(cr, "!! INTRUSION COUNTERMEASURES ARMED !!", 0, 0, "Chakra Petch", px, bold=True)
+        w, h = math.ceil(tw + 32 * sc), math.ceil(54 * sc)
+        surf, cr = new_layer(w, h)
+        cr.set_source_rgba(*RED, 1); cr.paint()
+        text(cr, "!! INTRUSION COUNTERMEASURES ARMED !!", w / 2, (h - px * 1.3) / 2, "Chakra Petch", px, DARK, bold=True,
+             align="center")
+        return surf
+
+    def make_edges(self):
+        e = 150 * max(0.5, self.sc * 2); W, H = self.W, self.H
+        surf, cr = new_layer(W, H)
+        for x0, y0, x1, y1, rect in ((0, 0, 0, e, (0, 0, W, e)), (0, H, 0, H - e, (0, H - e, W, e)),
+                                     (0, 0, e, 0, (0, 0, e, H)), (W, 0, W - e, 0, (W - e, 0, e, H))):
+            g = cairo.LinearGradient(x0, y0, x1, y1)
+            g.add_color_stop_rgba(0, *RED, 0.3); g.add_color_stop_rgba(1, *RED, 0)
+            cr.set_source(g); cr.rectangle(*rect); cr.fill()
+        return surf
+
+    def set_alert(self, alert):
+        self.alert = alert
+        if alert and self.glitch_at > time.monotonic() + 0.3:
+            self.glitch_at = time.monotonic() + 0.3
 
     def mx(self, x): return self.ox + x * self.sc
     def my(self, y): return self.oy + y * self.sc
 
-    def tick(self):
-        self.queue_draw()
-        return True
-
     def on_draw(self, _w, cr):
-        t = time.monotonic() - self.t0
+        now = time.monotonic()
+        self.t += min(0.5, now - self.last) * (1.6 if self.alert else 1)
+        self.last = now
+        t = self.t
         sc = self.sc
         cr.set_operator(cairo.OPERATOR_CLEAR); cr.paint(); cr.set_operator(cairo.OPERATOR_OVER)
 
+        if self.terminal is not None:
+            cr.set_source_surface(self.terminal, round(self.mx(PLATE[0])), round(self.my(PLATE[1]))); cr.paint()
+
         # falling hex columns
-        cr.select_font_face("JetBrainsMono Nerd Font Mono", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+        cr.select_font_face(MONO, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
         fs = max(10, 24 * sc); cr.set_font_size(fs)
         colh = 18 * fs * 1.15
         for c in self.cols:
@@ -146,22 +212,24 @@ class Live(Gtk.Window):
         cr.set_source(grad); cr.rectangle(0, y, self.W, 90); cr.fill()
         cr.set_source_rgba(*CY, 0.22); cr.rectangle(0, y + 88, self.W, 2); cr.fill()
 
-        # periodic glitch: slices of the real wallpaper displaced
-        now = time.monotonic()
+        # periodic glitch: slices of the real wallpaper displaced (more and wider, much more often, in alert)
         if now >= self.glitch_at:
-            if now < self.glitch_at + 0.13 and self.wall is not None:
+            if now < self.glitch_at + 0.13 and self.scene is not None:
                 r = random.Random(self.glitch_seed)
-                for _ in range(5):
-                    sy, sh, dx = r.random() * self.H, 4 + r.random() * 26, (r.random() - 0.5) * 120
+                for _ in range(9 if self.alert else 5):
+                    sy, sh, dx = r.random() * self.H, 4 + r.random() * 26, (r.random() - 0.5) * (260 if self.alert else 120)
                     cr.save(); cr.rectangle(0, sy, self.W, sh); cr.clip()
-                    cr.set_source_surface(self.wall, dx, 0); cr.paint(); cr.restore()
-                cr.set_source_rgba(*(RED if self.glitch_seed % 2 else CY), 0.6)
+                    cr.set_source_surface(self.scene, dx, 0); cr.paint(); cr.restore()
+                cr.set_source_rgba(*(RED if self.alert or self.glitch_seed % 2 else CY), 0.6)
                 cr.rectangle(0, r.random() * self.H, self.W, 3); cr.fill()
             elif now >= self.glitch_at + 0.13:
                 self.glitch_seed += 1
-                self.glitch_at = now + 7 + random.random() * 7
+                self.glitch_at = now + (0.6 + random.random() * 1.4 if self.alert else 7 + random.random() * 7)
+
+        # alert: red screen edges (about one pulse per second) and the alarm banner over the line in the image
+        if self.alert:
+            cr.set_source_surface(self.edges, 0, 0)
+            cr.paint_with_alpha(0.25 + 0.75 * (0.5 - 0.5 * math.cos(2 * math.pi * now / 0.9)))
+            if (now % 0.74) < 0.42:
+                cr.set_source_surface(self.banner, round(self.mx(1004)), round(self.my(1848))); cr.paint()
         return False
-
-
-if __name__ == "__main__":
-    w = Live(); w.show_all(); Gtk.main()

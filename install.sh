@@ -24,7 +24,9 @@ done
 
 # ------------------------------------------------------------------ config
 LOGO=""; LABEL="N E T R U N N E R"; HUD_LABEL=""; WALLPAPER="cyberneon.png"; NEMO_OPACITY="0.90"
-LIVE_WALLPAPER="yes"; LIVE_FPS="15"
+LIVE_WALLPAPER="yes"; LIVE_FPS="15"; HUD_STYLE="game"; DOCK_POSITION="bottom"
+REACTIVE_HUD="yes"; ALERT_CPU=85; ALERT_RAM=85; ALERT_TEMP=95; LIVE_TERMINAL="yes"; TRACE_MBPS=5; SENTINEL="yes"; QUICKHACK="yes"
+CYBER_OSD="yes"; SOUND_FX="no"; LOW_POWER_PERCENT=20
 PINNED="budgie-control-center.desktop,nemo.desktop,firefox_firefox.desktop,com.gexperts.Tilix.desktop,libreoffice-calc.desktop"
 UI_FONT="Chakra Petch Medium 10"; DOC_FONT="Chakra Petch 10"; TITLE_FONT="Chakra Petch Bold 10"
 # shellcheck source=cyberneon.conf
@@ -36,11 +38,14 @@ if [ -n "$LOGO" ] && [ ! -f "$LOGO" ]; then
     LOGO=""
 fi
 [ -z "$HUD_LABEL" ] && HUD_LABEL="$(id -un | tr '[:lower:]' '[:upper:]')"
+case "$HUD_STYLE" in game|classic) ;; *) echo "HUD_STYLE must be game or classic"; exit 1 ;; esac
+case "$DOCK_POSITION" in bottom|left) ;; *) echo "DOCK_POSITION must be bottom or left"; exit 1 ;; esac
+[ "$HUD_STYLE" = classic ] && DOCK_POSITION=left
 
 say() { printf '\033[38;2;91;238;220m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[38;2;255;42;79m!!\033[0m %s\n' "$*"; }
 have() { command -v "$1" >/dev/null 2>&1; }
-schema() { gsettings list-schemas 2>/dev/null | grep -qx "$1"; }
+schema() { gsettings list-schemas 2>/dev/null | grep -x "$1" >/dev/null; }   # (grep -q + pipefail: false negatives)
 
 # ------------------------------------------------------------------ checks
 say "checking requirements"
@@ -55,7 +60,12 @@ if [ ${#missing[@]} -gt 0 ]; then
     echo "   sudo apt install python3-pil python3-cairo python3-gi gir1.2-gtk-3.0 x11-utils x11-xserver-utils curl ubuntu-budgie-themes conky-all"
     exit 1
 fi
-have conky || warn "conky not installed: the HUD will be skipped (sudo apt install conky-all)"
+if [ "$HUD_STYLE" = classic ]; then
+    have conky || warn "conky not installed: the HUD will be skipped (sudo apt install conky-all)"
+else
+    python3 -I -c "import gi; gi.require_version('Wnck', '3.0')" 2>/dev/null \
+        || warn "gir1.2-wnck-3.0 not installed: the objective tracker stays empty (sudo apt install gir1.2-wnck-3.0)"
+fi
 
 # primary monitor geometry (for the wallpaper fillet, conky head and the ShowTime clock)
 read -r MON_IDX MON_W MON_H MON_X MON_Y < <(xrandr --listmonitors | awk '/\*/{
@@ -94,10 +104,25 @@ python3 -I "$SC/build_theme.py" --overrides "$REPO/theme"
 mkdir -p "$HOME/.config/gtk-4.0"
 cp "$REPO/theme/libadwaita.css" "$HOME/.config/gtk-4.0/gtk.css"
 
+# the Quickhack OSD reads the OSD requests on the session bus and takes the place of Budgie's window
+OSD_ON=false
+if [ "$HUD_STYLE" = game ] && [ "$CYBER_OSD" = yes ]; then
+    if ! have busctl; then warn "busctl not found: keeping Budgie's OSD"
+    else
+        rc=0; timeout 1 busctl --user monitor --match "type='method_call',member='ShowOSD'" >/dev/null 2>&1 || rc=$?
+        if [ "$rc" -eq 124 ]; then OSD_ON=true; else warn "cannot monitor the session bus: keeping Budgie's OSD"; fi
+    fi
+fi
+[ "$OSD_ON" = true ] && cat "$REPO/theme/quickhack-osd.css" >> "$HOME/.themes/CyberNeon/gtk-3.0/gtk.css"
+if [ "$DOCK_POSITION" = bottom ]; then
+    cat "$REPO/theme/dock-bottom.css" "$REPO/theme/top-pods.css" >> "$HOME/.themes/CyberNeon/gtk-3.0/gtk.css"
+fi
+
 say "icon theme -> CyberNeon-Icons"
 ICONS="$HOME/.local/share/icons"
 rm -rf "$ICONS/CyberNeon-Icons"
-[ -n "$LOGO" ] && python3 -I "$SC/make_logo_icon.py" "$LOGO" "$ICONS/CyberNeon-Icons"
+rm -f "$DATA/hud-logo.png"
+[ -n "$LOGO" ] && python3 -I "$SC/make_logo_icon.py" "$LOGO" "$ICONS/CyberNeon-Icons" --png "$DATA/hud-logo.png"
 python3 -I "$SC/make_icons.py" "$ICONS/CyberNeon-Icons"
 gtk-update-icon-cache -q -f -t "$ICONS/CyberNeon-Icons" || true
 
@@ -118,7 +143,14 @@ fi
 say "wallpaper -> ~/Pictures/Wallpapers/$WALLPAPER"
 WALLDIR="$HOME/Pictures/Wallpapers"; mkdir -p "$WALLDIR"
 WARGS=(--label "$LABEL" --monitor-width "$MON_W"); [ -n "$LOGO" ] && WARGS+=(--logo "$LOGO")
+[ "$DOCK_POSITION" = bottom ] && WARGS+=(--no-fillet)
 python3 -I "$SC/make_wallpaper.py" "$WALLDIR/$WALLPAPER" "${WARGS[@]}"
+mkdir -p "$DATA/system"
+TERMINAL_PLATE=""; rm -f "$DATA/system/terminal-plate.png"
+if [ "$HUD_STYLE" = game ] && [ "$LIVE_TERMINAL" = yes ] && [ "$LIVE_WALLPAPER" = yes ]; then
+    TERMINAL_PLATE="$DATA/system/terminal-plate.png"     # background of the live terminal
+    python3 -I "$SC/make_wallpaper.py" "$TERMINAL_PLATE" --terminal-plate "${WARGS[@]}" >/dev/null
+fi
 
 say "login / GRUB / boot splash assets -> $DATA/system (install them with system/*.sh)"
 mkdir -p "$DATA/system"
@@ -155,8 +187,16 @@ gsettings set $BG picture-uri ''   # force a reload even if the file name did no
 gsettings set $BG picture-uri "file://$WALLDIR/$WALLPAPER"
 gsettings set $BG picture-uri-dark "file://$WALLDIR/$WALLPAPER"
 
-say "panels (top bar + left dock)"
-python3 -I "$SC/panels.py" --pinned "$PINNED"
+say "panels (top bar + $DOCK_POSITION dock)"
+python3 -I "$SC/panels.py" --pinned "$PINNED" --hud "$HUD_STYLE" --dock "$DOCK_POSITION" \
+    --menu-icon "$([ -n "$LOGO" ] && echo cyberneon-launcher || echo cyberneon-logo)"
+if schema com.solus-project.budgie-panel; then
+    if [ "$HUD_STYLE" = game ]; then   # the Radar owns the top-right corner
+        gsettings set com.solus-project.budgie-panel notification-position 'BUDGIE_NOTIFICATION_POSITION_BOTTOM_LEFT'
+    else
+        gsettings reset com.solus-project.budgie-panel notification-position
+    fi
+fi
 if [ -f "$HOME/.config/autostart/plank.desktop" ] || [ -f /etc/xdg/autostart/plank.desktop ]; then
     if [ ! -f "$HOME/.config/autostart/plank.desktop" ]; then
         mkdir -p "$HOME/.config/autostart"; cp /etc/xdg/autostart/plank.desktop "$HOME/.config/autostart/"
@@ -167,7 +207,7 @@ if [ -f "$HOME/.config/autostart/plank.desktop" ] || [ -f /etc/xdg/autostart/pla
 fi
 pkill -x plank 2>/dev/null || true
 
-if schema org.ubuntubudgie.plugins.budgie-showtime; then
+if [ "$HUD_STYLE" = classic ] && schema org.ubuntubudgie.plugins.budgie-showtime; then
     say "ShowTime desktop clock (top-right of the primary monitor)"
     K=org.ubuntubudgie.plugins.budgie-showtime
     gsettings set $K anchor 'ne'; gsettings set $K autoposition false
@@ -210,7 +250,45 @@ EOF
 fi
 
 AUTO="$HOME/.config/autostart"; mkdir -p "$AUTO"
-if have conky; then
+HUD_DIR="$HOME/.config/cyberneon/hud"
+rm -rf "$HUD_DIR" "$HOME/.config/cyberneon/live-wallpaper.py"
+cp -r "$REPO/config/hud" "$HUD_DIR"; rm -rf "$HUD_DIR/__pycache__"; chmod +x "$HUD_DIR"/bin/* "$HUD_DIR/cyberneon-hud.py"
+yn() { [ "$1" = yes ] && echo true || echo false; }
+num() { case "$1" in ''|*[!0-9.]*) echo "$2" ;; *) echo "$1" ;; esac; }
+LABEL_TEXT="$HUD_LABEL" LOGO_FILE="$([ -n "$LOGO" ] && echo "$DATA/hud-logo.png")" PLATE_FILE="$TERMINAL_PLATE" \
+python3 -I - "$HUD_DIR/config.json" <<EOF
+import json, os, sys
+json.dump({"label": os.environ["LABEL_TEXT"], "logo": os.environ["LOGO_FILE"], "terminal_plate": os.environ["PLATE_FILE"],
+           "reactive": $([ "$REACTIVE_HUD" = yes ] && echo True || echo False),
+           "alert_cpu": $(num "$ALERT_CPU" 85), "alert_ram": $(num "$ALERT_RAM" 85), "alert_temp": $(num "$ALERT_TEMP" 95),
+           "live_terminal": $([ "$LIVE_TERMINAL" = yes ] && echo True || echo False), "trace_mbps": $(num "$TRACE_MBPS" 5),
+           "cyber_osd": $([ "$OSD_ON" = true ] && echo True || echo False),
+           "sound_fx": $([ "$SOUND_FX" = yes ] && echo True || echo False), "low_power": $(num "$LOW_POWER_PERCENT" 20),
+           "osd_bottom": $([ "$DOCK_POSITION" = bottom ] && echo 84 || echo 44),
+           "hud_left": $([ "$DOCK_POSITION" = bottom ] && echo 20 || echo 118),
+           "hud_top": $([ "$DOCK_POSITION" = bottom ] && echo 62 || echo 46),
+           "sentinel": $([ "$SENTINEL" = yes ] && echo True || echo False),
+           "quickhack": $([ "$QUICKHACK" = yes ] && echo True || echo False)},
+          open(sys.argv[1], "w"), indent=2)
+EOF
+HUD_RUN="python3 -I $HUD_DIR/cyberneon-hud.py --fps $LIVE_FPS"
+[ "$LIVE_WALLPAPER" = yes ] || HUD_RUN="$HUD_RUN --no-wallpaper"
+
+if [ "$HUD_STYLE" = game ]; then
+    say "game HUD (operator: $HUD_LABEL)"
+    rm -f "$AUTO/cyberneon-live-wallpaper.desktop"; rm -rf "$HOME/.config/conky/cyberneon"
+    cat > "$AUTO/cyberneon-hud.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=CyberNeon HUD
+Comment=Game-style desktop HUD and animated wallpaper (CyberNeon theme)
+Exec=sh -c "sleep 3 && $HUD_RUN"
+Icon=utilities-system-monitor
+Terminal=false
+X-GNOME-Autostart-enabled=true
+OnlyShowIn=Budgie;
+EOF
+elif have conky; then
     say "conky HUD (label: $HUD_LABEL)"
     CK="$HOME/.config/conky/cyberneon"; mkdir -p "$CK"
     sed "s/^    xinerama_head = .*/    xinerama_head = $MON_IDX,/" "$REPO/config/conky/cyberneon.conf" > "$CK/cyberneon.conf"
@@ -242,22 +320,38 @@ X-GNOME-Autostart-enabled=true
 OnlyShowIn=Budgie;
 EOF
 
-CN_LIVE="$HOME/.config/cyberneon/live-wallpaper.py"
-if [ "$LIVE_WALLPAPER" = yes ]; then
+if [ "$HUD_STYLE" = game ]; then
+    :   # the HUD process also draws the animated wallpaper
+elif [ "$LIVE_WALLPAPER" = yes ]; then
     say "CyberNeon Live: animated wallpaper layer (${LIVE_FPS} fps)"
-    cp "$REPO/config/live-wallpaper.py" "$CN_LIVE"; chmod +x "$CN_LIVE"
     cat > "$AUTO/cyberneon-live-wallpaper.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=CyberNeon Live wallpaper
 Comment=Animated layer over the CyberNeon wallpaper (scan line, arcs, network, glitches)
-Exec=sh -c "sleep 3 && python3 -I $CN_LIVE --fps $LIVE_FPS"
+Exec=sh -c "sleep 3 && python3 -I $HUD_DIR/cyberneon-hud.py --fps $LIVE_FPS --wallpaper-only"
 Terminal=false
 X-GNOME-Autostart-enabled=true
 OnlyShowIn=Budgie;
 EOF
 else
-    rm -f "$AUTO/cyberneon-live-wallpaper.desktop" "$CN_LIVE"
+    rm -f "$AUTO/cyberneon-live-wallpaper.desktop"
+fi
+
+# optional sound theme and jack-in sound at the start of the session
+SOUNDS="$HOME/.local/share/sounds/cyberneon"; JACKIN="$AUTO/cyberneon-jackin.desktop"
+SND=org.gnome.desktop.sound; SND_PREV="$DATA/event-sounds.previous"
+if [ "$SOUND_FX" = yes ]; then
+    say "sound theme -> $SOUNDS"
+    python3 -I "$SC/make_sounds.py" "$SOUNDS"
+    [ -f "$SND_PREV" ] || gsettings get $SND event-sounds > "$SND_PREV"
+    gsettings set $SND theme-name 'cyberneon'; gsettings set $SND event-sounds true
+    printf '[Desktop Entry]\nType=Application\nName=CyberNeon jack-in sound\nExec=%s desktop-login\nNoDisplay=true\nOnlyShowIn=Budgie;\n' \
+        "$HUD_DIR/bin/cn-sfx" > "$JACKIN"
+else
+    rm -rf "$SOUNDS" "$JACKIN"
+    [ "$(gsettings get $SND theme-name)" = "'cyberneon'" ] && gsettings reset $SND theme-name
+    if [ -f "$SND_PREV" ]; then gsettings set $SND event-sounds "$(cat "$SND_PREV")"; rm -f "$SND_PREV"; fi
 fi
 
 # Kvantum: cut-corner HUD widgets for Qt apps (optional, only if Kvantum is installed)
@@ -275,15 +369,23 @@ if [ "$RESTART" = 1 ]; then
     say "restarting window manager, panel, HUD"
     bash "$SC/restart_wm.sh"
     setsid -f budgie-panel --replace >/dev/null 2>&1 < /dev/null
-    if have conky; then
-        pkill -x conky 2>/dev/null || true; sleep 1
-        setsid -f conky -c "$HOME/.config/conky/cyberneon/cyberneon.conf" >/dev/null 2>&1 < /dev/null
+    pkill -x conky 2>/dev/null || true
+    if [ "$HUD_STYLE" = game ]; then
+        pkill -f '[s]howtime_desktop' 2>/dev/null || true
+    elif have conky; then
+        sleep 1; setsid -f conky -c "$HOME/.config/conky/cyberneon/cyberneon.conf" >/dev/null 2>&1 < /dev/null
     fi
     for p in $(pgrep -f '[c]yberneon/nemo-opacity.sh'); do kill "$p" 2>/dev/null || true; done
     pkill -f 'xprop -root -spy _NET_CLIENT_LIST' 2>/dev/null || true
     setsid -f "$HOME/.config/cyberneon/nemo-opacity.sh" "$NEMO_OPACITY" >/dev/null 2>&1 < /dev/null
-    for p in $(pgrep -f '[l]ive-wallpaper.py'); do kill "$p" 2>/dev/null || true; done
-    [ "$LIVE_WALLPAPER" = yes ] && setsid -f python3 -I "$CN_LIVE" --fps "$LIVE_FPS" >/dev/null 2>&1 < /dev/null
+    for p in $(pgrep -f '[l]ive-wallpaper.py|[c]yberneon-hud.py'); do kill "$p" 2>/dev/null || true; done
+    sleep 1
+    if [ "$HUD_STYLE" = game ]; then
+        # shellcheck disable=SC2086
+        setsid -f $HUD_RUN >/dev/null 2>&1 < /dev/null
+    elif [ "$LIVE_WALLPAPER" = yes ]; then
+        setsid -f python3 -I "$HUD_DIR/cyberneon-hud.py" --fps "$LIVE_FPS" --wallpaper-only >/dev/null 2>&1 < /dev/null
+    fi
 fi
 
 say "done. Login screen, GRUB, boot splash: sudo bash $REPO/system/install-login.sh / install-grub.sh / install-plymouth.sh"

@@ -1,0 +1,11 @@
+#!/bin/bash
+# CyberNeon: plays one sound of the CyberNeon sound theme (SOUND_FX="yes" in cyberneon.conf).
+#   cn-sfx NAME     e.g. dialog-warning, desktop-login
+# FAN MADE - inspired by Cyberpunk 2077 by CD PROJEKT RED (trademarks of CD PROJEKT S.A.).
+name=${1:?usage: cn-sfx NAME}
+file="$HOME/.local/share/sounds/cyberneon/stereo/$name.wav"
+[ -f "$file" ] || exit 0
+for player in pw-play paplay; do
+    command -v "$player" >/dev/null 2>&1 && exec "$player" "$file"
+done
+command -v canberra-gtk-play >/dev/null 2>&1 && exec canberra-gtk-play -f "$file"

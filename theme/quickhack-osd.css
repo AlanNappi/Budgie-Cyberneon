@@ -1,0 +1,4 @@
+
+/* CyberNeon: the Quickhack OSD of the HUD takes the place of Budgie's OSD window */
+.budgie-osd-window { background-color: transparent; background-image: none; box-shadow: none; border: none; }
+.budgie-osd { opacity: 0; }

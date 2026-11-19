@@ -20,16 +20,29 @@ else
     say "no pristine backup found: settings are left as they are"
 fi
 
+# settings that were at their default are not in the saved dump: put them back explicitly
+gsettings reset com.solus-project.budgie-panel notification-position 2>/dev/null || true
+grep -q "^notification-position=" "$P/dconf-full.ini" 2>/dev/null && dconf load / < "$P/dconf-full.ini"
+if [ "$(gsettings get org.gnome.desktop.sound theme-name 2>/dev/null)" = "'cyberneon'" ]; then
+    gsettings reset org.gnome.desktop.sound theme-name
+fi
+if [ -f "$DATA/event-sounds.previous" ]; then
+    gsettings set org.gnome.desktop.sound event-sounds "$(cat "$DATA/event-sounds.previous")"
+    rm -f "$DATA/event-sounds.previous"
+fi
+
 say "removing files"
 pkill -x conky 2>/dev/null || true
 for p in $(pgrep -f '[c]yberneon/nemo-opacity.sh'); do kill "$p" 2>/dev/null || true; done
 pkill -f 'xprop -root -spy _NET_CLIENT_LIST' 2>/dev/null || true
-for p in $(pgrep -f '[l]ive-wallpaper.py'); do kill "$p" 2>/dev/null || true; done
+for p in $(pgrep -f '[l]ive-wallpaper.py|[c]yberneon-hud.py'); do kill "$p" 2>/dev/null || true; done
 rm -rf "$HOME/.themes/CyberNeon" \
        "$HOME/.local/share/icons/CyberNeon-Icons" "$HOME/.local/share/icons/CyberNeon-Cursors" \
        "$HOME/.config/conky/cyberneon" "$HOME/.config/cyberneon" \
        "$HOME/.config/autostart/cyberneon-hud.desktop" "$HOME/.config/autostart/cyberneon-nemo-opacity.desktop" \
-       "$HOME/.config/autostart/cyberneon-live-wallpaper.desktop" "$HOME/.config/Kvantum/CyberNeon" \
+       "$HOME/.config/autostart/cyberneon-live-wallpaper.desktop" "$HOME/.config/autostart/cyberneon-jackin.desktop" \
+       "$HOME/.local/share/sounds/cyberneon" "$DATA/hud-logo.png" "$DATA/panels-state.json" "$DATA/radar-nodes" "$DATA/system/terminal-plate.png" \
+       "$HOME/.config/Kvantum/CyberNeon" \
        "$HOME/.config/tilix/schemes/cyberneon.json"
 [ -L "$HOME/.icons/CyberNeon-Cursors" ] && rm -f "$HOME/.icons/CyberNeon-Cursors"
 grep -q 'Inherits=CyberNeon-Cursors' "$HOME/.icons/default/index.theme" 2>/dev/null && rm -f "$HOME/.icons/default/index.theme"
